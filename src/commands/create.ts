@@ -1,9 +1,11 @@
 import { GluegunCommand } from 'gluegun'
+import { uploadOutDir } from '../lib/uploadOutDir'
 import { createAsset, getAsset } from '../lib/sdk'
-import { Args, Asset } from '../types'
+import { Args, Asset, BundlrOptions } from '../types'
 import { checkInvalidArgs } from '../utils/checkInvalidArgs'
 import { checkErrors } from '../utils/create/checkErrors'
 import { getInteractiveArgs } from '../utils/create/getInteractiveArgs'
+import { uploadSource } from '../lib/uploadSource'
 
 const command: GluegunCommand = {
   name: 'create',
@@ -28,6 +30,15 @@ const command: GluegunCommand = {
     let isForked = false
     const excludedArgs: string[] = []
     const invalidArgs: string[] = []
+    const bundlrOps: BundlrOptions = {
+      directory: '',
+      walletPath: '',
+      host: '',
+      indexFile: '',
+      batchSize: undefined,
+      keepDeleted: false,
+      noConfirm: false,
+    }
 
     if (parameters.first === 'fork') {
       isForked = true
@@ -56,34 +67,105 @@ const command: GluegunCommand = {
       excludedArgs.push('forks')
     }
 
-    for (let key in data) {
-      for (const field in args) {
-        if (!Object.keys(data).includes(field)) {
-          invalidArgs.push(field)
-        }
-
-        if (field === key) {
-          data[key] = args[field]
-        }
+    if (parameters.second) {
+      if (!args.walletPath) {
+        await getInteractiveArgs('walletPath').then((result) => {
+          if (result) {
+            data['walletPath'] = result['walletPath']
+          }
+        })
       }
 
-      const noKey =
-        !data[key] ||
-        data[key].length === 0 ||
-        (Object.keys(data[key]).length === 0 &&
-          data[key].constructor === Object)
+      const directory = parameters.second
+      const host = args.host || args.h
+      const indexFile = args.indexFile
+      const batchSize = args.batchSize
+      const keepDeleted = args.keepDeleted
+      const noConfirm = args.noConfirm
+      const walletPath = data.walletPath ? data.walletPath : args.walletPath
 
-      if (noKey) {
-        checkErrors(args as Args)
-        checkInvalidArgs(invalidArgs)
+      await uploadOutDir({
+        directory,
+        walletPath,
+        host,
+        indexFile,
+        batchSize,
+        keepDeleted,
+        noConfirm,
+      })
+        .then((manifest) => {
+          print.success('Manifest ID: ' + manifest.id)
 
-        await getInteractiveArgs(key as keyof Args, excludedArgs).then(
-          (result) => {
-            if (result) {
-              data[key] = result[key]
-            }
+          data['manifest'] = manifest.id
+        })
+        .catch((err) => {
+          print.error('Error deploying app: ' + err)
+          process.exit(1)
+        })
+        .then(async () => {
+          await uploadSource({
+            directory,
+            walletPath,
+            noConfirm,
+          })
+            .then((source) => {
+              if (!source) {
+                throw new Error(
+                  'There was an issue getting the source code transaction data.'
+                )
+              }
+
+              print.success('Source Code ID: ' + source.id)
+
+              data['sourceCode'] = source.id
+            })
+            .catch((err) => {
+              print.error('Error uploading source: ' + err)
+              process.exit(1)
+            })
+            .then(async () => {
+              await interactiveArgs()
+            })
+            .catch((err) => {
+              print.error('Upload cancelled' + err)
+              process.exit(1)
+            })
+        })
+    }
+
+    async function interactiveArgs() {
+      for (let key in data) {
+        for (const field in args) {
+          if (
+            !Object.keys(data).includes(field) &&
+            !Object.keys(bundlrOps).includes(field)
+          ) {
+            invalidArgs.push(field)
           }
-        )
+
+          if (field === key) {
+            data[key] = args[field]
+          }
+        }
+
+        const noKey =
+          !data[key] ||
+          data[key].length === 0 ||
+          (Object.keys(data[key]).length === 0 &&
+            data[key].constructor === Object)
+
+        if (noKey) {
+          checkErrors(args as Args)
+          checkInvalidArgs(invalidArgs)
+
+          await getInteractiveArgs(key as keyof Args, excludedArgs).then(
+            (result) => {
+              if (result) {
+                data[key] = result[key]
+              }
+            }
+          )
+        }
       }
     }
 

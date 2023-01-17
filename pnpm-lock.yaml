@@ -8,6 +8,7 @@ specifiers:
   '@types/node': 12.7.11
   '@typescript-eslint/eslint-plugin': 4.17.0
   '@typescript-eslint/parser': 4.17.0
+  adm-zip: 0.5.10
   arkb: 1.1.61
   arweave: 1.11.8
   copyfiles: 2.4.1
@@ -28,6 +29,7 @@ dependencies:
   '@bundlr-network/client': 0.9.11
   '@permaweb/asset-graph': '@arweave.net/-jYaU7HYX3JNpsOTqkMzEKUK4_5Mfy-a88jtgSNrI_k'
   '@permaweb/asset-sdk': '@arweave.net/6EufX9daGYA6tqv1WK900FQLy0JHta2PdMIutTh3t4g'
+  adm-zip: 0.5.10
   arkb: 1.1.61
   arweave: 1.11.8
   gluegun: 5.1.2
@@ -1476,6 +1478,11 @@ packages:
     resolution: {integrity: sha512-7zFpHzhnqYKrkYdUjF1HI1bzd0VygEGX8lFk4k5zVMqHEoES+P+7TKI+EvLO9WVMJ8eekdO0aDEK044xTXwPPA==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  /adm-zip/0.5.10:
+    resolution: {integrity: sha512-x0HvcHqVJNTPk/Bw8JbLWlWoo6Wwnsug0fnYYro1HBrjxZ3G7/AZk7Ahv8JwDe1uIcz8eBqvu86FuF1POiG7vQ==}
+    engines: {node: '>=6.0'}
+    dev: false
 
   /aes-js/3.0.0:
     resolution: {integrity: sha512-H7wUZRn8WpTq9jocdxQ2c8x2sKo9ZVmzfRE13GiNJXfp7NcKYEdvl3vspKjXox6RIG2VtaRe4JFvxG4rqp2Zuw==}

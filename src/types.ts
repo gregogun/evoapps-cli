@@ -38,3 +38,13 @@ export interface Option {
   description: string
   aliases: []
 }
+
+export interface BundlrOptions {
+  directory: string
+  walletPath: string
+  indexFile?: string
+  batchSize?: number
+  keepDeleted?: boolean
+  host?: string
+  noConfirm?: boolean
+}
