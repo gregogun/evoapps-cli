@@ -1,4 +1,3 @@
-import Arweave from 'arweave'
 import Bundlr from '@bundlr-network/client'
 import fs from 'fs'
 import path from 'path'
@@ -12,19 +11,13 @@ const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'))
 const pkgName = pkg.name
 const pkgVersion = pkg.version
 
-const arweave = Arweave.init({
-  host: 'arweave.net',
-  port: 443,
-  protocol: 'https',
-})
-
 export const uploadSource = async (options: BundlrOptions) => {
   const { walletPath, host } = options
 
   const wallet = JSON.parse(fs.readFileSync(walletPath, 'utf-8'))
 
   const bundlr = new Bundlr(
-    host ? host : 'https://node1.bundlr.network',
+    host ? host : 'https://node2.bundlr.network',
     'arweave',
     wallet
   )
@@ -40,8 +33,8 @@ export const uploadSource = async (options: BundlrOptions) => {
       .split('\n')
       .filter((line) => line.length > 0 && !line.startsWith('#'))
   } catch (err) {
-    console.log(err)
-    throw err
+    print.error(err)
+    process.exit(1)
   }
 
   const tempDir = `${pkgName}-${pkgVersion}`
@@ -67,26 +60,24 @@ export const uploadSource = async (options: BundlrOptions) => {
   }
 
   loadingSpinner.succeed(
-    `Upload price: ${
-      uploadSize > 128000 ? arweave.ar.winstonToAr(uploadPrice.toString()) : 0
-    } AR`
+    `Upload price: ${bundlr.utils.unitConverter(uploadPrice)} AR`
   )
 
   let res
 
   try {
     await prompt
-      .confirm('Please confirm your upload.')
+      .confirm('Please check and confirm your upload.')
       .then(async (confirm) => {
-        console.log(confirm)
-
+        const uploadSpinner = print.spin('Uploading source code to Arweave...')
         if (confirm) {
-          const loader = print.spin('Uploading to Arweave...')
-          const transaction = await uploadToArweave(tempDir)
-          loader.succeed(`${projectZip} successfully uploaded`)
+          const transaction = await uploadToArweave(uploadSpinner)
+          uploadSpinner.succeed(`${projectZip} successfully uploaded`)
+          await askCleanup()
           res = transaction
         } else {
-          throw new Error('Upload cancelled')
+          uploadSpinner.fail('Upload cancelled')
+          process.exit(1)
         }
       })
     return res
@@ -110,17 +101,30 @@ export const uploadSource = async (options: BundlrOptions) => {
     })
   }
 
-  async function uploadToArweave(tempDir) {
+  async function uploadToArweave(spinner) {
     try {
       const response = await bundlr.uploadFile('./' + projectZip)
-
-      removeDir(tempDir)
-      removeDir(projectZip)
       return response
     } catch (err) {
-      console.error(`Error uploading ${projectZip}: ${err}`)
-      throw err
+      spinner.fail(`${err}`)
+      await askCleanup()
+      process.exit(1)
     }
+  }
+
+  async function askCleanup() {
+    await prompt
+      .confirm(
+        'Would you like to run cleanup on the files generated for deployment?'
+      )
+      .then((confirm) => {
+        if (confirm) {
+          removeDir(tempDir)
+          removeDir(projectZip)
+        } else {
+          return
+        }
+      })
   }
 
   async function createZipArchive(tempDir) {
@@ -129,13 +133,18 @@ export const uploadSource = async (options: BundlrOptions) => {
       zip.addLocalFolder(tempDir)
       zip.writeZip(`${tempDir}.zip`)
     } catch (error) {
-      console.log(`Zip Archive couldn't be created: ${error}`)
-      throw error
+      print.error(`Zip Archive couldn't be created: ${error}`)
+      process.exit(1)
     }
   }
 
   function removeDir(dir) {
-    execSync(`rm -rf ${dir}`)
+    try {
+      execSync(`rm -rf ${dir}`)
+    } catch (error) {
+      print.error(error)
+      process.exit(1)
+    }
   }
 }
 

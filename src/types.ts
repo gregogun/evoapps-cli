@@ -40,7 +40,7 @@ export interface Option {
 }
 
 export interface BundlrOptions {
-  directory: string
+  directory: string | undefined
   walletPath: string
   indexFile?: string
   batchSize?: number

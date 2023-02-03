@@ -6,6 +6,7 @@ import { checkInvalidArgs } from '../utils/checkInvalidArgs'
 import { checkErrors } from '../utils/create/checkErrors'
 import { getInteractiveArgs } from '../utils/create/getInteractiveArgs'
 import { uploadSource } from '../lib/uploadSource'
+import { mapAlias } from '../utils/create/mapAlias'
 
 const command: GluegunCommand = {
   name: 'create',
@@ -26,6 +27,21 @@ const command: GluegunCommand = {
       notes: '',
       walletPath: '',
     }
+
+    const aliases = {
+      h: '',
+      t: '',
+      d: '',
+      f: '',
+      b: '',
+      m: '',
+      s: '',
+      n: '',
+      w: '',
+      id: '',
+    }
+
+    console.log(args)
 
     let isForked = false
     const excludedArgs: string[] = []
@@ -67,22 +83,22 @@ const command: GluegunCommand = {
       excludedArgs.push('forks')
     }
 
-    if (parameters.second) {
-      if (!args.walletPath) {
+    const directory = parameters.second
+    const host = args.host || args.h
+    const indexFile = args.indexFile
+    const batchSize = args.batchSize
+    const keepDeleted = args.keepDeleted
+    const noConfirm = args.noConfirm
+    const walletPath = args.walletPath || args.w
+
+    if (directory && !args.manifest && !args.m && !args.sourceCode && !args.s) {
+      if (!args.walletPath && !args.w) {
         await getInteractiveArgs('walletPath').then((result) => {
           if (result) {
             data['walletPath'] = result['walletPath']
           }
         })
       }
-
-      const directory = parameters.second
-      const host = args.host || args.h
-      const indexFile = args.indexFile
-      const batchSize = args.batchSize
-      const keepDeleted = args.keepDeleted
-      const noConfirm = args.noConfirm
-      const walletPath = data.walletPath ? data.walletPath : args.walletPath
 
       await uploadOutDir({
         directory,
@@ -103,34 +119,80 @@ const command: GluegunCommand = {
           process.exit(1)
         })
         .then(async () => {
-          await uploadSource({
-            directory,
-            walletPath,
-            noConfirm,
-          })
-            .then((source) => {
-              if (!source) {
-                throw new Error(
-                  'There was an issue getting the source code transaction data.'
-                )
-              }
+          if (args.sourceCode || args.s) {
+            await interactiveArgs()
+          } else {
+            await uploadSource({
+              directory,
+              walletPath,
+              noConfirm,
+            })
+              .then((source) => {
+                if (!source) {
+                  throw new Error(
+                    'There was an issue getting the source code transaction data.'
+                  )
+                }
 
-              print.success('Source Code ID: ' + source.id)
+                print.success('Source Code ID: ' + source.id)
 
-              data['sourceCode'] = source.id
-            })
-            .catch((err) => {
-              print.error('Error uploading source: ' + err)
-              process.exit(1)
-            })
-            .then(async () => {
-              await interactiveArgs()
-            })
-            .catch((err) => {
-              print.error('Upload cancelled' + err)
-              process.exit(1)
-            })
+                data['sourceCode'] = source.id
+              })
+              .catch((err) => {
+                print.error('Error uploading source: ' + err)
+                process.exit(1)
+              })
+              .then(async () => {
+                await interactiveArgs()
+              })
+              .catch((err) => {
+                print.error('Upload cancelled' + err)
+                process.exit(1)
+              })
+          }
         })
+    } else if (!args.sourceCode && !args.s && (args.manifest || args.m)) {
+      await uploadOutDir({
+        directory,
+        walletPath,
+        host,
+        indexFile,
+        batchSize,
+        keepDeleted,
+        noConfirm,
+      })
+        .then((manifest) => {
+          print.success('Manifest ID: ' + manifest.id)
+
+          data['manifest'] = manifest.id
+        })
+        .catch((err) => {
+          print.error('Error deploying app: ' + err)
+          process.exit(1)
+        })
+    } else if (!args.manifest && !args.m && (args.sourceCode || args.s)) {
+      await uploadSource({
+        directory,
+        walletPath,
+        noConfirm,
+      })
+        .then((source) => {
+          if (!source) {
+            throw new Error(
+              'There was an issue getting the source code transaction data.'
+            )
+          }
+
+          print.success('Source Code ID: ' + source.id)
+
+          data['sourceCode'] = source.id
+        })
+        .catch((err) => {
+          print.error('Error uploading source: ' + err)
+          process.exit(1)
+        })
+    } else {
+      await interactiveArgs()
     }
 
     async function interactiveArgs() {
@@ -138,6 +200,7 @@ const command: GluegunCommand = {
         for (const field in args) {
           if (
             !Object.keys(data).includes(field) &&
+            !Object.keys(aliases).includes(field) &&
             !Object.keys(bundlrOps).includes(field)
           ) {
             invalidArgs.push(field)
@@ -145,6 +208,11 @@ const command: GluegunCommand = {
 
           if (field === key) {
             data[key] = args[field]
+          }
+          for (const key in aliases) {
+            if (field === key) {
+              data[mapAlias(key) as string] = args[field]
+            }
           }
         }
 
