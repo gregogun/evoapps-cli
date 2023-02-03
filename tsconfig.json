@@ -23,7 +23,7 @@
     "declarationDir": "build/types",
     "esModuleInterop": true,
     "noEmit": true,
-    "types": []
+    "types": ["jest", "mocha"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]

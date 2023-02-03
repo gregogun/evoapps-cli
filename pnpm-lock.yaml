@@ -5,6 +5,7 @@ specifiers:
   '@permaweb/asset-graph': https://arweave.net/-jYaU7HYX3JNpsOTqkMzEKUK4_5Mfy-a88jtgSNrI_k
   '@permaweb/asset-sdk': https://arweave.net/6EufX9daGYA6tqv1WK900FQLy0JHta2PdMIutTh3t4g
   '@types/jest': 26.0.20
+  '@types/mocha': 10.0.1
   '@types/node': 12.7.11
   '@typescript-eslint/eslint-plugin': 4.17.0
   '@typescript-eslint/parser': 4.17.0
@@ -37,6 +38,7 @@ dependencies:
 
 devDependencies:
   '@types/jest': 26.0.20
+  '@types/mocha': 10.0.1
   '@types/node': 12.7.11
   '@typescript-eslint/eslint-plugin': 4.17.0_cfgj4bzfczdbb27dyk4kww3th4
   '@typescript-eslint/parser': 4.17.0_b7mgcl6h3xr42o4jgma3ryjc2y
@@ -1256,6 +1258,10 @@ packages:
 
   /@types/minimatch/3.0.5:
     resolution: {integrity: sha512-Klz949h02Gz2uZCMGwDUSDS1YBlTdDDgbWHi+81l29tQALUtvz4rAYi5uoVhE5Lagoq6DeqAUlbrHvW/mXDgdQ==}
+    dev: true
+
+  /@types/mocha/10.0.1:
+    resolution: {integrity: sha512-/fvYntiO1GeICvqbQ3doGDIP97vWmvFt83GKguJ6prmQM2iXZfFcq6YE8KteFyRtX2/h5Hf91BYvPodJKFYv5Q==}
     dev: true
 
   /@types/node/11.11.6:
@@ -6211,6 +6217,7 @@ packages:
 
   /redstone-isomorphic/1.1.6:
     resolution: {integrity: sha512-q9N6/B1KHFBxeRsaqMZUelLorp7BLh50R4fUTf9LNkZPTMZ+sRRVWVE0aZT7lyKbXTLiEdk8kSOHPY4yQu//7Q==}
+    deprecated: redstone-isomorphic has been renamed to warp-isomorphic. Please install new package.
     dependencies:
       buffer: 6.0.3
       safe-buffer: 5.2.1
@@ -6276,6 +6283,7 @@ packages:
 
   /redstone-wasm-json-toolkit/1.0.0:
     resolution: {integrity: sha512-N07LnP0CkjBWAuYDuiz/pzlJVLHIEcLQjoKk2Bzfga6vuLo+dNZhPrD8cDr8HtYZHeV6oKaPxe/eFnf5n0JmSQ==}
+    deprecated: redstone-wasm-json-toolkit has been renamed to warp-wasm-json-toolkit. Please install new package.
     hasBin: true
     dependencies:
       buffer-pipe: 0.0.3
@@ -6294,6 +6302,7 @@ packages:
 
   /redstone-wasm-metering/1.0.0:
     resolution: {integrity: sha512-NsthdSoiEBh8jRq4kNqNZ77J9ZgPbvQaPYx+SqDctsQdz0aPFyD5czkv4Sn6K2L2p8DvfWxGqCJXp0Q0WneG8g==}
+    deprecated: redstone-wasm-metering has been renamed to warp-wasm-metering. Please install new package.
     hasBin: true
     dependencies:
       leb128: 0.0.4
