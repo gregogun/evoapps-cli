@@ -1,8 +1,7 @@
 {
-  "name": "evoapps",
+  "name": "evoapps-cli",
   "version": "0.0.1",
   "description": "Evolutionary Apps CLI",
-  "private": true,
   "types": "build/types/types.d.ts",
   "bin": {
     "evoapps": "bin/evoapps-cli"
@@ -39,6 +38,7 @@
   },
   "devDependencies": {
     "@types/jest": "26.0.20",
+    "@types/mocha": "10.0.1",
     "@types/node": "12.7.11",
     "@typescript-eslint/eslint-plugin": "4.17.0",
     "@typescript-eslint/parser": "4.17.0",

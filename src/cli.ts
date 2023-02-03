@@ -6,9 +6,9 @@ import { build } from 'gluegun'
 async function run(argv) {
   // create a CLI runtime
   const cli = build()
-    .brand('ff-cli-test')
+    .brand('evoapps-cli')
     .src(__dirname)
-    .plugins('./node_modules', { matching: 'ff-cli-test-*', hidden: true })
+    .plugins('./node_modules', { matching: 'evoapps-cli-*', hidden: true })
     .help() // provides default for help, h, --help, -h
     .version() // provides default for version, v, --version, -v
     .defaultCommand()
