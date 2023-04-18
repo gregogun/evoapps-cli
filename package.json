@@ -32,6 +32,7 @@
     "@permaweb/asset-sdk": "https://arweave.net/6EufX9daGYA6tqv1WK900FQLy0JHta2PdMIutTh3t4g",
     "adm-zip": "0.5.10",
     "arkb": "1.1.61",
+    "arlocal": "1.1.60",
     "arweave": "1.11.8",
     "gluegun": "latest",
     "warp-contracts": "1.2.39"
