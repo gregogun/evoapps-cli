@@ -65,7 +65,7 @@ const command: GluegunCommand = {
         .ask({
           name: 'versionType',
           message:
-            'Please specify whether you are creating a base or forked version',
+            'Please specify whether you are creating a base or forked application',
           choices: ['base', 'fork'],
           type: 'select',
           required: true,
