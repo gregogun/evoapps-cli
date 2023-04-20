@@ -1,6 +1,5 @@
 import ArLocal from 'arlocal'
 import Arweave from 'arweave'
-
 ;(async () => {
   const arLocal = new ArLocal()
 
@@ -22,7 +21,7 @@ import Arweave from 'arweave'
   // airdrop amount of tokens (in winston) to wallet
   await arweave.api.get(`mint/${addr}/${1e12}`)
   // create mine function
-  const mine = () => arweave.api.get('mine')
+  // const mine = () => arweave.api.get('mine')
 
   // create asset
 
