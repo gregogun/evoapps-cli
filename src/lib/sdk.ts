@@ -2,7 +2,7 @@ import AssetSDK from '@permaweb/asset-sdk'
 import Bundlr from '@bundlr-network/client'
 import { WarpFactory } from 'warp-contracts'
 import fs from 'fs'
-import { Args } from '../types'
+import { Args, Manifest } from '../types'
 import { arweave } from './arweave'
 import graph from '@permaweb/asset-graph'
 import { jwkToAddress } from '../utils/jwkToAddress'
@@ -28,28 +28,24 @@ export const getAssetGroup = async (id: string) => {
   return res
 }
 
-export const createAsset = async ({
-  appId,
-  title,
-  description,
-  topics,
-  forks,
-  walletPath,
-  balances,
-  notes,
-  manifest,
-  sourceCode,
-}: Args) => {
+export const createAsset = async (
+  {
+    appId,
+    title,
+    description,
+    topics,
+    forks,
+    walletPath,
+    balances,
+    notes,
+  }: Args,
+  manifest: Manifest
+) => {
   const jwk = JSON.parse(fs.readFileSync(walletPath, 'utf-8'))
   const bundlr = new Bundlr('https://node2.bundlr.network', 'arweave', jwk)
   const warp = WarpFactory.forMainnet()
 
   const SDK = AssetSDK.init({ arweave, bundlr, warp, wallet: jwk })
-
-  const data: { manifest: string; sourceCode: string } = {
-    manifest,
-    sourceCode,
-  }
 
   const formattedBalances = await jwkToAddress(walletPath).then((address) => {
     return {
@@ -69,9 +65,9 @@ export const createAsset = async ({
     topics: formattedTopics,
     balances: formattedBalances,
     forks,
-    data: JSON.stringify(data),
+    data: JSON.stringify(manifest),
     meta: notes,
-    contentType: 'application/json',
+    contentType: 'application/x.arweave-manifest+json',
   })
 
   return result

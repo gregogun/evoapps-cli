@@ -8,8 +8,6 @@ import {
   askTopics,
   askWalletPath,
   askNotes,
-  askManifest,
-  askSourceCode,
   askTitle,
 } from './questions'
 
@@ -46,16 +44,6 @@ export async function getInteractiveArgs(key: keyof Args, excluded?: string[]) {
       skip: key !== 'notes',
     },
     {
-      ...askManifest,
-      skip: key !== 'manifest',
-      required: key !== 'manifest' ? false : true,
-    },
-    {
-      ...askSourceCode,
-      skip: key !== 'sourceCode',
-      required: key !== 'sourceCode' ? false : true,
-    },
-    {
       ...askForks,
       skip: key !== 'forks',
       required: key !== 'forks' ? false : true,
@@ -63,7 +51,7 @@ export async function getInteractiveArgs(key: keyof Args, excluded?: string[]) {
     {
       ...askWalletPath,
       skip: key !== 'walletPath',
-      initial: './wallet.json',
+      required: key !== 'walletPath' ? false : true,
     },
     {
       ...askBalances,

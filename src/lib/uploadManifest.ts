@@ -3,23 +3,15 @@ import path from 'path'
 import Bundlr from '@bundlr-network/client'
 import mime from 'mime-types'
 // import { handleError } from '../utils/handleError'
-import { prompt } from 'gluegun'
+import { print, prompt } from 'gluegun'
 import { formatBytes } from './formatBytes'
+import { Manifest } from '../types'
 
-interface Manifest {
-  manifest: string
-  version: string
-  index?: {
-    path: string
-  }
-  paths: {
-    [key: string]: {
-      id: string
-    }
-  }
-}
-
-export async function createManifest(dir: string, walletPath: string) {
+export async function createManifest(
+  dir: string,
+  walletPath: string,
+  indexFile: string
+) {
   let wallet = ''
 
   try {
@@ -36,13 +28,22 @@ export async function createManifest(dir: string, walletPath: string) {
   let manifest: Manifest = {
     manifest: 'arweave/paths',
     version: '0.1.0',
+    index: {
+      path: indexFile || 'index.html',
+    },
     paths: {},
   }
   try {
+    const uploadSpinner = print.spin('Getting upload price...')
     const files = await recursiveReadDir(dir)
+    uploadSpinner.stop()
     await calculateAndConfirm(files.sizes, bundlr).then(async (confirm) => {
       if (confirm) {
+        uploadSpinner.start('Uploading files...')
         await recursiveUploadFiles(dir, manifest.paths, bundlr).then(() => {
+          uploadSpinner.succeed(
+            `${files.sizes.length} files uploaded successfully ✨`
+          )
           const dirNameLength = dir.length + 1 // +1 to include trailing slash
           for (const key in manifest.paths) {
             const removedDirName = key.substring(dirNameLength)
@@ -130,11 +131,13 @@ async function recursiveUploadFiles(dir: string, paths: {}, bundlr: Bundlr) {
 }
 
 async function calculateAndConfirm(sizes: number[], bundlr: Bundlr) {
+  const spinner = print.spin('Calculating upload size and price...')
   let combinedSize = sizes.reduce((a, b) => a + b, 0)
   const priceWinston = await bundlr.getPrice(combinedSize)
 
   const priceAr = bundlr.utils.unitConverter(priceWinston)
 
+  spinner.stop()
   return await prompt.confirm(
     `Authorize file upload?\n Total amount of data: ${combinedSize} bytes (${formatBytes(
       combinedSize

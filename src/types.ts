@@ -10,8 +10,6 @@ export interface Args {
   topics: string
   balances: number
   forks?: string
-  manifest: string
-  sourceCode
   notes?: string
   walletPath: string
   directory?: string
@@ -47,4 +45,17 @@ export interface BundlrOptions {
   keepDeleted?: boolean
   host?: string
   noConfirm?: boolean
+}
+
+export interface Manifest {
+  manifest: string
+  version: string
+  index?: {
+    path: string
+  }
+  paths: {
+    [key: string]: {
+      id: string
+    }
+  }
 }
