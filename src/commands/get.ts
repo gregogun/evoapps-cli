@@ -5,7 +5,7 @@ import { getInteractiveArgs } from '../utils/create/getInteractiveArgs'
 
 const command: GluegunCommand = {
   name: 'get',
-  description: 'Get info about an atomic asset',
+  description: 'Get info about an app',
   run: async (toolbox) => {
     const { parameters, print } = toolbox
     const { options: args } = parameters

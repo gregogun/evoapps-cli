@@ -1,16 +1,16 @@
 import { GluegunCommand } from 'gluegun'
-import { uploadOutDir } from '../lib/uploadOutDir'
 import { createAsset, getAsset } from '../lib/sdk'
-import { Args, Asset, BundlrOptions } from '../types'
-import { checkInvalidArgs } from '../utils/checkInvalidArgs'
+import { Args, Asset, BundlrOptions, Manifest } from '../types'
 import { checkErrors } from '../utils/create/checkErrors'
 import { getInteractiveArgs } from '../utils/create/getInteractiveArgs'
-import { uploadSource } from '../lib/uploadSource'
 import { mapAlias } from '../utils/create/mapAlias'
+import { createManifest } from '../lib/uploadManifest'
+import { printData } from '../utils/create/printData'
+import { readFileSync } from 'fs'
 
 const command: GluegunCommand = {
   name: 'create',
-  description: 'Create or fork an atomic asset',
+  description: 'Create or fork an app',
   run: async (toolbox) => {
     const { parameters, print, prompt } = toolbox
     const { options: args } = parameters
@@ -22,8 +22,6 @@ const command: GluegunCommand = {
       topics: '',
       forks: '',
       balances: 0,
-      manifest: '',
-      sourceCode: '',
       notes: '',
       walletPath: '',
     }
@@ -41,7 +39,7 @@ const command: GluegunCommand = {
       id: '',
     }
 
-    console.log(args)
+    // console.log(args)
 
     let isForked = false
     const excludedArgs: string[] = []
@@ -65,7 +63,7 @@ const command: GluegunCommand = {
         .ask({
           name: 'versionType',
           message:
-            'Please specify whether you are creating a base or forked version',
+            'Please specify whether you are creating a base or forked application',
           choices: ['base', 'fork'],
           type: 'select',
           required: true,
@@ -84,116 +82,81 @@ const command: GluegunCommand = {
     }
 
     const directory = parameters.second
-    const host = args.host || args.h
-    const indexFile = args.indexFile
-    const batchSize = args.batchSize
-    const keepDeleted = args.keepDeleted
-    const noConfirm = args.noConfirm
-    const walletPath = args.walletPath || args.w
 
-    if (directory && !args.manifest && !args.m && !args.sourceCode && !args.s) {
-      if (!args.walletPath && !args.w) {
-        await getInteractiveArgs('walletPath').then((result) => {
-          if (result) {
-            data['walletPath'] = result['walletPath']
-          }
-        })
-      }
-
-      await uploadOutDir({
-        directory,
-        walletPath,
-        host,
-        indexFile,
-        batchSize,
-        keepDeleted,
-        noConfirm,
-      })
-        .then((manifest) => {
-          print.success('Manifest ID: ' + manifest.id)
-
-          data['manifest'] = manifest.id
-        })
-        .catch((err) => {
-          print.error('Error deploying app: ' + err)
-          process.exit(1)
-        })
-        .then(async () => {
-          if (args.sourceCode || args.s) {
-            await interactiveArgs()
-          } else {
-            await uploadSource({
-              directory,
-              walletPath,
-              noConfirm,
-            })
-              .then((source) => {
-                if (!source) {
-                  throw new Error(
-                    'There was an issue getting the source code transaction data.'
-                  )
-                }
-
-                print.success('Source Code ID: ' + source.id)
-
-                data['sourceCode'] = source.id
-              })
-              .catch((err) => {
-                print.error('Error uploading source: ' + err)
-                process.exit(1)
-              })
-              .then(async () => {
-                await interactiveArgs()
-              })
-              .catch((err) => {
-                print.error('Upload cancelled' + err)
-                process.exit(1)
-              })
-          }
-        })
-    } else if (!args.sourceCode && !args.s && (args.manifest || args.m)) {
-      await uploadOutDir({
-        directory,
-        walletPath,
-        host,
-        indexFile,
-        batchSize,
-        keepDeleted,
-        noConfirm,
-      })
-        .then((manifest) => {
-          print.success('Manifest ID: ' + manifest.id)
-
-          data['manifest'] = manifest.id
-        })
-        .catch((err) => {
-          print.error('Error deploying app: ' + err)
-          process.exit(1)
-        })
-    } else if (!args.manifest && !args.m && (args.sourceCode || args.s)) {
-      await uploadSource({
-        directory,
-        walletPath,
-        noConfirm,
-      })
-        .then((source) => {
-          if (!source) {
-            throw new Error(
-              'There was an issue getting the source code transaction data.'
-            )
-          }
-
-          print.success('Source Code ID: ' + source.id)
-
-          data['sourceCode'] = source.id
-        })
-        .catch((err) => {
-          print.error('Error uploading source: ' + err)
-          process.exit(1)
-        })
-    } else {
-      await interactiveArgs()
+    if (!directory) {
+      print.error('Error: No directory specified.')
+      process.exit(1)
     }
+
+    // const host = args.host || args.h
+    const indexFile = args.index
+    // const batchSize = args.batchSize
+    // const keepDeleted = args.keepDeleted
+    // const noConfirm = args.noConfirm
+    const walletPath = args.walletPath || args.wallet || args.w
+
+    if (!args.walletPath && !args.wallet && !args.w) {
+      await getInteractiveArgs('walletPath').then((result) => {
+        if (result) {
+          data['walletPath'] = result['walletPath']
+        }
+      })
+    } else {
+      data['walletPath'] = walletPath
+    }
+
+    let manifest: Manifest = {
+      manifest: 'arweave/paths',
+      version: '0.1.0',
+      index: {
+        path: indexFile || 'index.html',
+      },
+      paths: {},
+    }
+
+    await prompt
+      .confirm('Do you already have a manifest file you would like to deploy?')
+      .then(async (confirm) => {
+        if (confirm) {
+          const spinner = print.spin('Getting manifest...')
+          spinner.stop()
+          await prompt
+            .ask({
+              name: 'manifest',
+              message:
+                'Please provide a path to the file containing your manifest.',
+              type: 'input',
+              initial: `${directory}-manifest.json`,
+              validate: (input) => {
+                if (!input.includes('json')) {
+                  return false
+                } else {
+                  return true
+                }
+              },
+            })
+            .then((answer) => {
+              try {
+                const manifestFile = readFileSync(answer.manifest)
+                manifest = JSON.parse(manifestFile.toString())
+              } catch (error: any) {
+                print.error(`Error: ${error.message}`)
+                process.exit(1)
+              }
+            })
+            .catch((error: any) => {
+              print.error(`Error: ${error.message}`)
+              process.exit(1)
+            })
+        } else {
+          try {
+            manifest = await createManifest(directory, walletPath, manifest)
+          } catch (error: any) {
+            print.error(`Error: ${error.message}`)
+            process.exit(1)
+          }
+        }
+      })
 
     async function interactiveArgs() {
       for (let key in data) {
@@ -224,7 +187,7 @@ const command: GluegunCommand = {
 
         if (noKey) {
           checkErrors(args as Args)
-          checkInvalidArgs(invalidArgs)
+          // checkInvalidArgs(invalidArgs)
 
           await getInteractiveArgs(key as keyof Args, excludedArgs).then(
             (result) => {
@@ -238,16 +201,17 @@ const command: GluegunCommand = {
     }
 
     const confirmation = async () => {
+      // print.info('Confirmation..')
       checkErrors(data)
 
       if (isForked && data.forks) {
+        // print.info('Fork id exists, getting information...')
         await getAsset({
           id: data.forks,
           walletPath: data.walletPath,
         })
           .then((res: Asset) => {
-            console.log(res)
-
+            // print.info('ID found, setting groupId...')
             data['appId'] = res.groupId
           })
           .catch(() => {
@@ -259,7 +223,7 @@ const command: GluegunCommand = {
       }
 
       // print data object before confirmation
-      print.highlight(data)
+      printData(data)
 
       const confirmResult = await prompt.confirm(
         `Would you like to confirm your changes?`
@@ -267,42 +231,21 @@ const command: GluegunCommand = {
 
       if (confirmResult) {
         try {
-          const res = await createAsset(data)
+          const res = await createAsset(data, manifest, data['forks'])
           print.success(
-            `You've successfully deployed your app asset! App Asset ID: ${res.id}`
+            `You've successfully deployed your app! 🚀 Transaction ID: ${res.id}\n Deployed at: https://g8way.io/${res.id}`
           )
         } catch (error) {
           print.error(error)
           process.exit(1)
         }
       } else {
-        await prompt
-          .ask({
-            name: 'update',
-            message: 'Please select the fields you would like to update',
-            type: 'multiselect',
-            choices: Object.keys(data),
-            required: true,
-            hint: 'Press space key to select a field, and enter key to submit',
-          })
-          .then(async (answer) => {
-            const choices = answer.update
-
-            for (const choice of choices) {
-              await getInteractiveArgs(choice as keyof Args)
-                .then((result) => {
-                  if (result) {
-                    data[choice] = result[choice]
-                  }
-                })
-                .then(async () => {
-                  confirmation()
-                })
-            }
-          })
+        print.error('App creation cancelled')
+        process.exit(1)
       }
     }
 
+    await interactiveArgs()
     confirmation()
   },
 }

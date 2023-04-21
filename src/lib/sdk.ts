@@ -1,9 +1,8 @@
 import AssetSDK from '@permaweb/asset-sdk'
 import Bundlr from '@bundlr-network/client'
-import { WarpFactory } from 'warp-contracts'
 import fs from 'fs'
-import { Args } from '../types'
-import { arweave } from './arweave'
+import { Args, Balances, Manifest } from '../types'
+import { arweave, getPrevBalances, warp } from './arweave'
 import graph from '@permaweb/asset-graph'
 import { jwkToAddress } from '../utils/jwkToAddress'
 
@@ -11,9 +10,10 @@ export const getAsset = async ({
   id,
   walletPath,
 }: Pick<Args, 'id' | 'walletPath'>) => {
+  // console.log('In get asset function')
+  // console.log('id', id)
   const jwk = JSON.parse(fs.readFileSync(walletPath, 'utf-8'))
   const bundlr = new Bundlr('https://node2.bundlr.network', 'arweave', jwk)
-  const warp = WarpFactory.forMainnet()
 
   const SDK = AssetSDK.init({ arweave, bundlr, warp, wallet: jwk })
 
@@ -28,34 +28,41 @@ export const getAssetGroup = async (id: string) => {
   return res
 }
 
-export const createAsset = async ({
-  appId,
-  title,
-  description,
-  topics,
-  forks,
-  walletPath,
-  balances,
-  notes,
-  manifest,
-  sourceCode,
-}: Args) => {
+export const createAsset = async (
+  {
+    appId,
+    title,
+    description,
+    topics,
+    forks,
+    walletPath,
+    balances,
+    notes,
+  }: Args,
+  manifest: Manifest,
+  parentId?: string
+) => {
   const jwk = JSON.parse(fs.readFileSync(walletPath, 'utf-8'))
   const bundlr = new Bundlr('https://node2.bundlr.network', 'arweave', jwk)
-  const warp = WarpFactory.forMainnet()
 
   const SDK = AssetSDK.init({ arweave, bundlr, warp, wallet: jwk })
-
-  const data: { manifest: string; sourceCode: string } = {
-    manifest,
-    sourceCode,
-  }
 
   const formattedBalances = await jwkToAddress(walletPath).then((address) => {
     return {
       [address]: Number(balances),
     }
   })
+
+  let newBalances: Balances | null = null
+
+  if (parentId) {
+    try {
+      const prevBalances = await getPrevBalances(parentId)
+      newBalances = Object.assign(formattedBalances, prevBalances)
+    } catch (error) {
+      throw error
+    }
+  }
 
   const formattedTopics = topics
     .split(/[ ,]+/)
@@ -67,11 +74,11 @@ export const createAsset = async ({
     title,
     description,
     topics: formattedTopics,
-    balances: formattedBalances,
+    balances: newBalances || formattedBalances,
     forks,
-    data: JSON.stringify(data),
+    data: JSON.stringify(manifest),
     meta: notes,
-    contentType: 'application/json',
+    contentType: 'application/x.arweave-manifest+json',
   })
 
   return result

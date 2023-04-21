@@ -27,18 +27,8 @@ export const checkErrors = (args: Args) => {
     process.exit(1)
   }
 
-  if (args.manifest && typeof args.manifest !== 'string') {
-    print.error('Error: Manifest Transaction ID must be an string')
-    process.exit(1)
-  }
-
   if (args.notes && typeof args.notes !== 'string') {
     print.error('Error: Inline/Path to Release Notes must be a string value')
-    process.exit(1)
-  }
-
-  if (args.sourceCode && typeof args.sourceCode !== 'string') {
-    print.error('Error: Source Code Transaction ID must be a string value')
     process.exit(1)
   }
 
