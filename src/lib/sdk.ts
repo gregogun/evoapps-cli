@@ -1,9 +1,8 @@
 import AssetSDK from '@permaweb/asset-sdk'
 import Bundlr from '@bundlr-network/client'
-import { WarpFactory } from 'warp-contracts'
 import fs from 'fs'
-import { Args, Manifest } from '../types'
-import { arweave } from './arweave'
+import { Args, Balances, Manifest } from '../types'
+import { arweave, getPrevBalances, warp } from './arweave'
 import graph from '@permaweb/asset-graph'
 import { jwkToAddress } from '../utils/jwkToAddress'
 
@@ -11,9 +10,10 @@ export const getAsset = async ({
   id,
   walletPath,
 }: Pick<Args, 'id' | 'walletPath'>) => {
+  // console.log('In get asset function')
+  // console.log('id', id)
   const jwk = JSON.parse(fs.readFileSync(walletPath, 'utf-8'))
   const bundlr = new Bundlr('https://node2.bundlr.network', 'arweave', jwk)
-  const warp = WarpFactory.forMainnet()
 
   const SDK = AssetSDK.init({ arweave, bundlr, warp, wallet: jwk })
 
@@ -39,11 +39,11 @@ export const createAsset = async (
     balances,
     notes,
   }: Args,
-  manifest: Manifest
+  manifest: Manifest,
+  parentId?: string
 ) => {
   const jwk = JSON.parse(fs.readFileSync(walletPath, 'utf-8'))
   const bundlr = new Bundlr('https://node2.bundlr.network', 'arweave', jwk)
-  const warp = WarpFactory.forMainnet()
 
   const SDK = AssetSDK.init({ arweave, bundlr, warp, wallet: jwk })
 
@@ -52,6 +52,17 @@ export const createAsset = async (
       [address]: Number(balances),
     }
   })
+
+  let newBalances: Balances | null = null
+
+  if (parentId) {
+    try {
+      const prevBalances = await getPrevBalances(parentId)
+      newBalances = Object.assign(formattedBalances, prevBalances)
+    } catch (error) {
+      throw error
+    }
+  }
 
   const formattedTopics = topics
     .split(/[ ,]+/)
@@ -63,7 +74,7 @@ export const createAsset = async (
     title,
     description,
     topics: formattedTopics,
-    balances: formattedBalances,
+    balances: newBalances || formattedBalances,
     forks,
     data: JSON.stringify(manifest),
     meta: notes,
