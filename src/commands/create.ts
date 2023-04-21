@@ -1,13 +1,11 @@
 import { GluegunCommand } from 'gluegun'
-// import { uploadOutDir } from '../lib/uploadOutDir'
 import { createAsset, getAsset } from '../lib/sdk'
 import { Args, Asset, BundlrOptions } from '../types'
-// import { checkInvalidArgs } from '../utils/checkInvalidArgs'
 import { checkErrors } from '../utils/create/checkErrors'
 import { getInteractiveArgs } from '../utils/create/getInteractiveArgs'
-// import { uploadSource } from '../lib/uploadSource'
 import { mapAlias } from '../utils/create/mapAlias'
 import { createManifest } from '../lib/uploadManifest'
+import { printData } from '../utils/create/printData'
 
 const command: GluegunCommand = {
   name: 'create',
@@ -171,7 +169,7 @@ const command: GluegunCommand = {
       }
 
       // print data object before confirmation
-      print.highlight(data)
+      printData(data)
 
       const confirmResult = await prompt.confirm(
         `Would you like to confirm your changes?`

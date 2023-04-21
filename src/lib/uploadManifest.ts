@@ -143,7 +143,7 @@ async function calculateAndConfirm(sizes: number[], bundlr: Bundlr) {
       combinedSize
     )}) over ${
       sizes.length
-    } files - cost ${priceWinston} winston ${priceAr.toFixed()} AR`
+    } files - cost = ${priceWinston} winston / ${priceAr.toFixed()} AR`
   )
 }
 
