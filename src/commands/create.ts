@@ -1,11 +1,12 @@
 import { GluegunCommand } from 'gluegun'
 import { createAsset, getAsset } from '../lib/sdk'
-import { Args, Asset, BundlrOptions } from '../types'
+import { Args, Asset, BundlrOptions, Manifest } from '../types'
 import { checkErrors } from '../utils/create/checkErrors'
 import { getInteractiveArgs } from '../utils/create/getInteractiveArgs'
 import { mapAlias } from '../utils/create/mapAlias'
 import { createManifest } from '../lib/uploadManifest'
 import { printData } from '../utils/create/printData'
+import { readFileSync } from 'fs'
 
 const command: GluegunCommand = {
   name: 'create',
@@ -104,7 +105,58 @@ const command: GluegunCommand = {
       data['walletPath'] = walletPath
     }
 
-    const manifest = await createManifest(directory, walletPath, indexFile)
+    let manifest: Manifest = {
+      manifest: 'arweave/paths',
+      version: '0.1.0',
+      index: {
+        path: indexFile || 'index.html',
+      },
+      paths: {},
+    }
+
+    await prompt
+      .confirm('Do you already have a manifest file you would like to deploy?')
+      .then(async (confirm) => {
+        if (confirm) {
+          const spinner = print.spin('Getting manifest...')
+          spinner.stop()
+          await prompt
+            .ask({
+              name: 'manifest',
+              message:
+                'Please provide a path to the file containing your manifest.',
+              type: 'input',
+              initial: `${directory}-manifest.json`,
+              validate: (input) => {
+                if (!input.includes('json')) {
+                  return false
+                } else {
+                  return true
+                }
+              },
+            })
+            .then((answer) => {
+              try {
+                const manifestFile = readFileSync(answer.manifest)
+                manifest = JSON.parse(manifestFile.toString())
+              } catch (error: any) {
+                print.error(`Error: ${error.message}`)
+                process.exit(1)
+              }
+            })
+            .catch((error: any) => {
+              print.error(`Error: ${error.message}`)
+              process.exit(1)
+            })
+        } else {
+          try {
+            manifest = await createManifest(directory, walletPath, manifest)
+          } catch (error: any) {
+            print.error(`Error: ${error.message}`)
+            process.exit(1)
+          }
+        }
+      })
 
     async function interactiveArgs() {
       for (let key in data) {
@@ -149,15 +201,17 @@ const command: GluegunCommand = {
     }
 
     const confirmation = async () => {
+      // print.info('Confirmation..')
       checkErrors(data)
 
       if (isForked && data.forks) {
+        // print.info('Fork id exists, getting information...')
         await getAsset({
           id: data.forks,
           walletPath: data.walletPath,
         })
           .then((res: Asset) => {
-            console.log(res)
+            // print.info('ID found, setting groupId...')
             data['appId'] = res.groupId
           })
           .catch(() => {
@@ -177,9 +231,9 @@ const command: GluegunCommand = {
 
       if (confirmResult) {
         try {
-          const res = await createAsset(data, manifest)
+          const res = await createAsset(data, manifest, data['forks'])
           print.success(
-            `You've successfully deployed your app asset! App Asset ID: ${res.id}`
+            `You've successfully deployed your app! 🚀 Transaction ID: ${res.id}\n Deployed at: https://g8way.io/${res.id}`
           )
         } catch (error) {
           print.error(error)

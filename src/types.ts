@@ -1,4 +1,4 @@
-type Balances = {
+export type Balances = {
   [key: string]: number
 }
 

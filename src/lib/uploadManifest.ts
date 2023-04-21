@@ -10,7 +10,7 @@ import { Manifest } from '../types'
 export async function createManifest(
   dir: string,
   walletPath: string,
-  indexFile: string
+  manifest: Manifest
 ) {
   let wallet = ''
 
@@ -23,18 +23,9 @@ export async function createManifest(
 
   // init bundlr
   const bundlr = new Bundlr('https://node2.bundlr.network', 'arweave', wallet)
+  const uploadSpinner = print.spin('Getting upload price...')
 
-  // create mutable manifest obj
-  let manifest: Manifest = {
-    manifest: 'arweave/paths',
-    version: '0.1.0',
-    index: {
-      path: indexFile || 'index.html',
-    },
-    paths: {},
-  }
   try {
-    const uploadSpinner = print.spin('Getting upload price...')
     const files = await recursiveReadDir(dir)
     uploadSpinner.stop()
     await calculateAndConfirm(files.sizes, bundlr).then(async (confirm) => {
@@ -50,6 +41,10 @@ export async function createManifest(
             manifest.paths[removedDirName] = manifest.paths[key]
             delete manifest.paths[key]
           }
+          fs.writeFileSync(
+            `${process.cwd()}/${dir}-manifest.json`,
+            JSON.stringify(manifest, null, 2)
+          )
         })
       } else {
         throw new Error('Upload cancelled')
@@ -60,6 +55,7 @@ export async function createManifest(
     //   'An error occured whilst reading and uploading your files - ',
     //   error
     // )
+    uploadSpinner.stop()
     throw error
   }
 
