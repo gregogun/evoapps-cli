@@ -1,10 +1,10 @@
 {
   "name": "evoapps-cli",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Evolutionary Apps CLI",
   "types": "build/types/types.d.ts",
   "bin": {
-    "evoapps": "bin/evoapps-cli"
+    "evoapps-cli": "bin/evoapps-cli"
   },
   "scripts": {
     "clean-build": "rm -rf ./build",
